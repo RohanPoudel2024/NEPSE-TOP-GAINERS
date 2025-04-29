@@ -3,7 +3,7 @@ const cors = require('cors');
 const { scrapeGainers, parseGainersHTML } = require('./app');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 0; // Use 0 to find an available port
 
 // Middleware
 app.use(cors());  
@@ -59,7 +59,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`NEPSE API Server running on http://localhost:${PORT}`);
+// Start server with dynamic port assignment
+const server = app.listen(PORT, () => {
+  const actualPort = server.address().port;
+  console.log(`NEPSE API Server running on http://localhost:${actualPort}`);
 });
