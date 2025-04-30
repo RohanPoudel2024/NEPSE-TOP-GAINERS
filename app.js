@@ -563,63 +563,26 @@ function parseProvidedIndicesHTML(htmlSnippet) {
   }
 }
 
-// Update the scrapeIndices function to try both sources
+// Function to scrape indices data - prioritizing NepaliPaisa
 async function scrapeIndices() {
   try {
-    console.log("Attempting to scrape indices data from multiple sources...");
+    console.log("Attempting to scrape indices data...");
     
-    // First try MeroLagani
-    try {
-      console.log("Trying MeroLagani first...");
-      const meroLaganiResponse = await axios.get('https://merolagani.com/LatestMarket.aspx');
-      const html = meroLaganiResponse.data;
-      
-      // Extract the index slider HTML section
-      const startMarker = '<ul id="index-slider"';
-      const endMarker = '</ul>';
-      
-      const startIndex = html.indexOf(startMarker);
-      if (startIndex !== -1) {
-        let endIndex = html.indexOf(endMarker, startIndex);
-        if (endIndex === -1) {
-          endIndex = html.length;
-        } else {
-          endIndex += endMarker.length;
-        }
-        
-        const sliderHtml = html.substring(startIndex, endIndex);
-        console.log(`Found index slider HTML from MeroLagani (${sliderHtml.length} bytes)`);
-        
-        // Parse the extracted HTML
-        const result = parseIndicesHTML(sliderHtml);
-        if (result.data && result.data.length > 0) {
-          console.log(`Successfully parsed ${result.data.length} indices from MeroLagani`);
-          result.source = 'MeroLagani.com';
-          return result;
-        }
-      }
-      
-      console.log("No indices found in MeroLagani HTML");
-    } catch (meroLaganiError) {
-      console.error("Error scraping from MeroLagani:", meroLaganiError.message);
-    }
-    
-    // If MeroLagani fails, try NepaliPaisa
-    console.log("Trying NepaliPaisa as fallback...");
+    // Try NepaliPaisa as primary source
+    console.log("Fetching indices data from NepaliPaisa...");
     const nepaliPaisaResult = await scrapeIndicesFromNepaliPaisa();
     if (nepaliPaisaResult.data && nepaliPaisaResult.data.length > 0) {
       console.log(`Successfully parsed ${nepaliPaisaResult.data.length} indices from NepaliPaisa`);
       return nepaliPaisaResult;
     }
     
-    // If both fail, return empty result
-    console.error("All scraping methods failed");
+    console.log("Failed to get indices data from NepaliPaisa, returning empty result");
     return {
       data: [],
       timestamp: new Date().toISOString(),
       count: 0,
-      error: "All scraping sources failed",
-      sources: ['MeroLagani.com', 'NepaliPaisa.com']
+      error: "Failed to retrieve indices data",
+      source: 'NepaliPaisa.com'
     };
   } catch (error) {
     console.error('Error in scraping indices:', error.message);
