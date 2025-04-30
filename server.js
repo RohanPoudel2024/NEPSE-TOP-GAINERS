@@ -78,34 +78,38 @@ app.get('/health', (req, res) => {
 });
 
 // Function to keep the app alive - Modified for better reliability
-function setupKeepAlive() {
-  // Wait 30 seconds before starting the keep-alive mechanism
-  setTimeout(() => {
-    // Get the host from the server instance
-    const server = app.listen(PORT, () => {
-      const host = server.address().address;
-      const port = server.address().port;
-      const appUrl = `http://${host === '::' ? 'localhost' : host}:${port}`;
-      
-      console.log(`NEPSE API Server running at ${appUrl}`);
-      
-      // Set up the keep-alive interval
-      setInterval(async () => {
-        try {
-          const response = await axios.get(`${appUrl}/health`);
-          console.log(`[${new Date().toISOString()}] Keep-alive ping: ${response.status}`);
-        } catch (error) {
-          console.error('Keep-alive ping failed:', error.message);
-        }
-      }, 280000); // Every 4 minutes 40 seconds
-    });
-  }, 30000); // 30-second delay
+function setupKeepAlive(appUrl) {
+  // Set up the keep-alive interval
+  setInterval(async () => {
+    try {
+      const response = await axios.get(`${appUrl}/health`);
+      console.log(`[${new Date().toISOString()}] Keep-alive ping: ${response.status}`);
+    } catch (error) {
+      console.error('Keep-alive ping failed:', error.message);
+    }
+  }, 280000); // Every 4 minutes 40 seconds
 }
 
-// Start server - Use this approach instead of the previous one
-app.listen(PORT, () => {
+// Start server - Only start one server instance
+const server = app.listen(PORT, () => {
   console.log(`NEPSE API Server running on port ${PORT}`);
+  
+  // Determine the server URL (for Render specifically)
+  let appUrl;
+  if (process.env.RENDER_EXTERNAL_URL) {
+    // Running on Render
+    appUrl = process.env.RENDER_EXTERNAL_URL;
+  } else {
+    // Local development
+    const host = server.address().address;
+    const port = server.address().port;
+    appUrl = `http://${host === '::' ? 'localhost' : host}:${port}`;
+  }
+  
+  console.log(`Server URL: ${appUrl}`);
+  
+  // Wait 30 seconds before starting keep-alive
+  setTimeout(() => {
+    setupKeepAlive(appUrl);
+  }, 30000);
 });
-
-// Set up keep-alive function
-setupKeepAlive();
