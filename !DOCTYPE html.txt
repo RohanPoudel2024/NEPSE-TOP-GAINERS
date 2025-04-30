@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top Gainers - NEPSE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Ticker/Breaking News style */
+    .ticker-container {
+      display: flex;
+      background-color: #1e40af;
+      color: white;
+      overflow: hidden;
+      margin-bottom: 1rem;
+      border-radius: 0.375rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .ticker-label {
+      padding: 0.5rem 1rem;
+      font-weight: bold;
+      background-color: #1e3a8a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    
+    .ticker-content {
+      overflow: hidden;
+      position: relative;
+      flex-grow: 1;
+      padding: 0.5rem 0;
+    }
+    
+    .ticker-items {
+      position: absolute;
+      display: flex;
+      animation: ticker 30s linear infinite;
+      white-space: nowrap;
+      width: max-content;
+    }
+    
+    .ticker-item {
+      margin-right: 2rem;
+      font-weight: 500;
+    }
+    
+    @keyframes ticker {
+      0% {
+        transform: translateX(100%);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
+    }
+
+    /* Grid layout for main content */
+    .gainers-grid {
+      display: grid;
+      grid-template-columns: auto auto auto auto auto auto auto auto auto;
+      width: 100%;
+    }
+    .gainers-header {
+      background-color: rgb(79, 70, 229);
+      color: white;
+      padding: 0.5rem 1rem;
+      font-weight: 600;
+      text-align: left;
+    }
+    .header-right {
+      text-align: right;
+    }
+    .gainers-cell {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .cell-right {
+      text-align: right;
+    }
+    .stock-symbol {
+      font-weight: 600;
+      color: rgb(67, 56, 202);
+    }
+    .percent-change {
+      color: rgb(22, 163, 74);
+      font-weight: 700;
+    }
+    .gainers-row:hover {
+      background-color: #f3f4f6;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="max-w-6xl mx-auto p-6">
+    <!-- Breaking News style ticker -->
+    <div class="ticker-container">
+      <div class="ticker-label">Top Gainers ::</div>
+      <div class="ticker-content">
+        <div class="ticker-items" id="ticker-content">
+          <!-- Ticker content will be inserted here -->
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+      <!-- Header row -->
+      <div class="gainers-grid">
+        <div class="gainers-header">Symbol</div>
+        <div class="gainers-header">Name</div>
+        <div class="gainers-header header-right">LTP</div>
+        <div class="gainers-header header-right">% Change</div>
+        <div class="gainers-header header-right">High</div>
+        <div class="gainers-header header-right">Low</div>
+        <div class="gainers-header header-right">Open</div>
+        <div class="gainers-header header-right">Qty</div>
+        <div class="gainers-header header-right">Turnover</div>
+      </div>
+      
+      <!-- Data rows will be inserted here -->
+      <div id="gainers-content"></div>
+    </div>
+  </div>
+
+  <script>
+    fetch('https://encouraging-platinum-cartwheel.glitch.me/api/gainers')
+      .then(res => res.json())
+      .then(data => {
+        // Populate the main data grid
+        const container = document.getElementById('gainers-content');
+        
+        // Populate the ticker
+        const tickerContainer = document.getElementById('ticker-content');
+        
+        data.data.forEach(stock => {
+          // Add to main grid
+          const row = `
+            <div class="gainers-grid gainers-row">
+              <div class="gainers-cell stock-symbol">${stock.symbol}</div>
+              <div class="gainers-cell">${stock.fullName}</div>
+              <div class="gainers-cell cell-right">Rs. ${stock.ltp.toFixed(2)}</div>
+              <div class="gainers-cell cell-right percent-change">${stock.percentChange}%</div>
+              <div class="gainers-cell cell-right">${stock.high}</div>
+              <div class="gainers-cell cell-right">${stock.low}</div>
+              <div class="gainers-cell cell-right">${stock.open}</div>
+              <div class="gainers-cell cell-right">${stock.quantity.toLocaleString()}</div>
+              <div class="gainers-cell cell-right">Rs. ${Number(stock.turnover).toLocaleString()}</div>
+            </div>
+          `;
+          container.insertAdjacentHTML('beforeend', row);
+          
+          // Add to ticker
+          const tickerItem = `
+            <div class="ticker-item">${stock.symbol}: <span class="font-bold">Rs. ${stock.ltp.toFixed(2)}</span> <span class="text-green-300">(+${stock.percentChange}%)</span></div>
+          `;
+          tickerContainer.insertAdjacentHTML('beforeend', tickerItem);
+        });
+      })
+      .catch(err => {
+        document.getElementById('gainers-content').innerHTML =
+          `<div class="gainers-grid"><div class="gainers-cell text-center text-red-600" style="grid-column: span 9;">Failed to load data.</div></div>`;
+        document.getElementById('ticker-content').innerHTML =
+          `<div class="ticker-item text-red-300">Failed to load data</div>`;
+      });
+  </script>
+</body>
+</html>e 
