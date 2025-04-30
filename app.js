@@ -84,27 +84,142 @@ function parseGainersHTML(htmlSnippet) {
   }
 }
 
+// Function to scrape live trading data from merolagani.com
+async function scrapeLiveTrading() {
+  try {
+    // Make a request to the website
+    const response = await axios.get('https://merolagani.com/LatestMarket.aspx');
+    const html = response.data;
+    
+    // Parse HTML with cheerio
+    const $ = cheerio.load(html);
+    const liveTable = $('table.live-trading[data-live="live-trading"]');
+    
+    // Get the timestamp if available
+    const dateLabel = $('.date-label span.label').text().trim();
+    const timestamp = dateLabel || new Date().toISOString();
+    
+    // Array to store the parsed data
+    const liveTrading = [];
+    
+    // Process each row in the table
+    liveTable.find('tbody tr').each((index, row) => {
+      const columns = $(row).find('td');
+      if (columns.length < 9) return; // Skip if not enough columns
+      
+      // Check if it's an increase or decrease
+      const changeType = $(row).hasClass('increase-row') ? 'increase' : 'decrease';
+      
+      // Extract data from each column
+      const symbol = $(columns[0]).find('a').text().trim();
+      const fullName = $(columns[0]).find('a').attr('title') || '';
+      const ltp = parseFloat($(columns[1]).text().replace(/,/g, ''));
+      const percentChange = parseFloat($(columns[2]).text());
+      const open = parseFloat($(columns[3]).text().replace(/,/g, ''));
+      const high = parseFloat($(columns[4]).text().replace(/,/g, ''));
+      const low = parseFloat($(columns[5]).text().replace(/,/g, ''));
+      const quantity = parseInt($(columns[6]).text().replace(/,/g, ''), 10);
+      const pclose = parseFloat($(columns[7]).text().replace(/,/g, ''));
+      const diff = parseFloat($(columns[8]).text().replace(/,/g, ''));
+      
+      liveTrading.push({
+        symbol,
+        fullName,
+        ltp,
+        percentChange,
+        open,
+        high,
+        low,
+        quantity,
+        pclose,
+        diff,
+        changeType
+      });
+    });
+    
+    return {
+      data: liveTrading,
+      timestamp,
+      count: liveTrading.length
+    };
+  } catch (error) {
+    console.error('Error scraping live trading data:', error.message);
+    return {
+      data: [],
+      timestamp: new Date().toISOString(),
+      count: 0,
+      error: error.message
+    };
+  }
+}
+
+// Function to parse provided HTML snippet for live trading
+function parseLiveTradingHTML(htmlSnippet) {
+  try {
+    const $ = cheerio.load(htmlSnippet);
+    
+    // Get the timestamp if available
+    const dateLabel = $('.date-label span.label').text().trim();
+    const timestamp = dateLabel || new Date().toISOString();
+    
+    // Array to store the parsed data
+    const liveTrading = [];
+    
+    // Process each row in the table
+    $('table.live-trading tbody tr').each((index, row) => {
+      const columns = $(row).find('td');
+      if (columns.length < 9) return; // Skip if not enough columns
+      
+      // Check if it's an increase or decrease
+      const changeType = $(row).hasClass('increase-row') ? 'increase' : 'decrease';
+      
+      // Extract data from each column
+      const symbol = $(columns[0]).find('a').text().trim();
+      const fullName = $(columns[0]).find('a').attr('title') || '';
+      const ltp = parseFloat($(columns[1]).text().replace(/,/g, ''));
+      const percentChange = parseFloat($(columns[2]).text());
+      const open = parseFloat($(columns[3]).text().replace(/,/g, ''));
+      const high = parseFloat($(columns[4]).text().replace(/,/g, ''));
+      const low = parseFloat($(columns[5]).text().replace(/,/g, ''));
+      const quantity = parseInt($(columns[6]).text().replace(/,/g, ''), 10);
+      const pclose = parseFloat($(columns[7]).text().replace(/,/g, ''));
+      const diff = parseFloat($(columns[8]).text().replace(/,/g, ''));
+      
+      liveTrading.push({
+        symbol,
+        fullName,
+        ltp,
+        percentChange,
+        open,
+        high,
+        low,
+        quantity,
+        pclose,
+        diff,
+        changeType
+      });
+    });
+    
+    return {
+      data: liveTrading,
+      timestamp,
+      count: liveTrading.length
+    };
+  } catch (error) {
+    console.error('Error parsing live trading HTML:', error.message);
+    return {
+      data: [],
+      timestamp: new Date().toISOString(),
+      count: 0,
+      error: error.message
+    };
+  }
+}
+
 // Export functions for use in server.js
 module.exports = {
   scrapeGainers,
-  parseGainersHTML
+  parseGainersHTML,
+  scrapeLiveTrading,
+  parseLiveTradingHTML
 };
-
-// If running this file directly, still allow testing
-if (require.main === module) {
-  // Example for testing when running app.js directly
-  const htmlSnippet = `<!-- your HTML snippet here -->`;
-  
-  // Parse the HTML snippet
-  const parsedData = parseGainersHTML(htmlSnippet);
-  console.log("Parsed gainers data:");
-  console.log(JSON.stringify(parsedData, null, 2));
-  
-  // Uncomment to test live scraping
-  /*
-  scrapeGainers().then(gainers => {
-    console.log("Live scraped gainers data:");
-    console.log(JSON.stringify(gainers, null, 2));
-  });
-  */
-}

@@ -1,6 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const { scrapeGainers, parseGainersHTML } = require('./app');
+const { 
+  scrapeGainers, 
+  parseGainersHTML, 
+  scrapeLiveTrading, 
+  parseLiveTradingHTML 
+} = require('./app');
 const axios = require('axios');
 
 const app = express();
@@ -18,6 +23,7 @@ app.get('/', (req, res) => {
     <ul>
       <li><a href="/health">Health Check</a></li>
       <li><a href="/api/gainers">Get Gainers Data</a></li>
+      <li><a href="/api/live-trading">Get Live Trading Data</a></li>
     </ul>
   `);
 });
@@ -30,6 +36,24 @@ app.get('/api/gainers', async (req, res) => {
       success: true,
       data: gainers,
       count: gainers.length,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// API Route for live trading
+app.get('/api/live-trading', async (req, res) => {
+  try {
+    const tradingData = await scrapeLiveTrading();
+    res.json({
+      success: true,
+      ...tradingData,
       timestamp: new Date()
     });
   } catch (error) {
@@ -68,6 +92,32 @@ app.post('/api/parse', (req, res) => {
   }
 });
 
+// Route to parse HTML for live trading
+app.post('/api/parse/live-trading', (req, res) => {
+  try {
+    if (!req.body.html) {
+      return res.status(400).json({
+        success: false,
+        error: 'HTML content is required',
+        timestamp: new Date()
+      });
+    }
+    
+    const tradingData = parseLiveTradingHTML(req.body.html);
+    res.json({
+      success: true,
+      ...tradingData,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -77,9 +127,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Function to keep the app alive - Modified for better reliability
+// Function to keep the app alive
 function setupKeepAlive(appUrl) {
-  // Set up the keep-alive interval
   setInterval(async () => {
     try {
       const response = await axios.get(`${appUrl}/health`);
@@ -90,17 +139,15 @@ function setupKeepAlive(appUrl) {
   }, 280000); // Every 4 minutes 40 seconds
 }
 
-// Start server - Only start one server instance
+// Start server
 const server = app.listen(PORT, () => {
   console.log(`NEPSE API Server running on port ${PORT}`);
   
-  // Determine the server URL (for Render specifically)
+  // Determine the server URL
   let appUrl;
   if (process.env.RENDER_EXTERNAL_URL) {
-    // Running on Render
     appUrl = process.env.RENDER_EXTERNAL_URL;
   } else {
-    // Local development
     const host = server.address().address;
     const port = server.address().port;
     appUrl = `http://${host === '::' ? 'localhost' : host}:${port}`;
@@ -108,7 +155,7 @@ const server = app.listen(PORT, () => {
   
   console.log(`Server URL: ${appUrl}`);
   
-  // Wait 30 seconds before starting keep-alive
+  // Start keep-alive after 30 seconds
   setTimeout(() => {
     setupKeepAlive(appUrl);
   }, 30000);
