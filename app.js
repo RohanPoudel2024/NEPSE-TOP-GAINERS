@@ -216,10 +216,86 @@ function parseLiveTradingHTML(htmlSnippet) {
   }
 }
 
+// Function to scrape indices data from merolagani.com
+async function scrapeIndices() {
+  try {
+    // Make a request to the website
+    const response = await axios.get('https://merolagani.com/LatestMarket.aspx');
+    const html = response.data;
+    return parseIndicesHTML(html);
+  } catch (error) {
+    console.error('Error scraping indices data:', error.message);
+    return {
+      data: [],
+      timestamp: new Date().toISOString(),
+      count: 0,
+      error: error.message
+    };
+  }
+}
+
+// Function to parse provided HTML snippet for market indices
+function parseIndicesHTML(htmlSnippet) {
+  try {
+    const $ = cheerio.load(htmlSnippet);
+    
+    // Get the indices data
+    const indices = [];
+    
+    // Process each index in the slider
+    $('#index-slider li.list-item').each((index, item) => {
+      const $item = $(item);
+      
+      // Get the index name
+      const name = $item.find('strong').text().trim();
+      
+      // Determine if it's increasing or decreasing
+      const isIncrease = $item.find('span').hasClass('text-increase');
+      const isDecrease = $item.find('span').hasClass('text-decrease');
+      const direction = isIncrease ? 'up' : (isDecrease ? 'down' : 'neutral');
+      
+      // Get the value and percentage change
+      const valueSpan = $item.find('span > span').first().text().trim();
+      const value = parseFloat(valueSpan.replace(/,/g, ''));
+      
+      const percentChangeSpan = $item.find('span > span').last().text().trim();
+      const percentChange = parseFloat(percentChangeSpan.replace(/[^0-9.-]/g, '')) * (direction === 'down' ? -1 : 1);
+      
+      // Get the volume/value in parentheses
+      const volumeText = $item.find('span.text-primary').text().trim();
+      const volume = parseFloat(volumeText.replace(/[^\d.-]/g, '')) || 0;
+      
+      indices.push({
+        name,
+        value,
+        percentChange,
+        direction,
+        volume
+      });
+    });
+    
+    return {
+      data: indices,
+      timestamp: new Date().toISOString(),
+      count: indices.length
+    };
+  } catch (error) {
+    console.error('Error parsing indices HTML:', error.message);
+    return {
+      data: [],
+      timestamp: new Date().toISOString(),
+      count: 0,
+      error: error.message
+    };
+  }
+}
+
 // Export functions for use in server.js
 module.exports = {
   scrapeGainers,
   parseGainersHTML,
   scrapeLiveTrading,
-  parseLiveTradingHTML
+  parseLiveTradingHTML,
+  scrapeIndices,
+  parseIndicesHTML
 };

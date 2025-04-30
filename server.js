@@ -4,7 +4,9 @@ const {
   scrapeGainers, 
   parseGainersHTML, 
   scrapeLiveTrading, 
-  parseLiveTradingHTML 
+  parseLiveTradingHTML,
+  scrapeIndices,
+  parseIndicesHTML
 } = require('./app');
 const axios = require('axios');
 
@@ -24,6 +26,7 @@ app.get('/', (req, res) => {
       <li><a href="/health">Health Check</a></li>
       <li><a href="/api/gainers">Get Gainers Data</a></li>
       <li><a href="/api/live-trading">Get Live Trading Data</a></li>
+      <li><a href="/api/indices">Get Market Indices Data</a></li>
     </ul>
   `);
 });
@@ -54,6 +57,24 @@ app.get('/api/live-trading', async (req, res) => {
     res.json({
       success: true,
       ...tradingData,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// New API Route for market indices
+app.get('/api/indices', async (req, res) => {
+  try {
+    const indicesData = await scrapeIndices();
+    res.json({
+      success: true,
+      ...indicesData,
       timestamp: new Date()
     });
   } catch (error) {
@@ -107,6 +128,32 @@ app.post('/api/parse/live-trading', (req, res) => {
     res.json({
       success: true,
       ...tradingData,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// New Route to parse HTML for indices
+app.post('/api/parse/indices', (req, res) => {
+  try {
+    if (!req.body.html) {
+      return res.status(400).json({
+        success: false,
+        error: 'HTML content is required',
+        timestamp: new Date()
+      });
+    }
+    
+    const indicesData = parseIndicesHTML(req.body.html);
+    res.json({
+      success: true,
+      ...indicesData,
       timestamp: new Date()
     });
   } catch (error) {
