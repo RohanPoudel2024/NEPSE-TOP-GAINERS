@@ -7,7 +7,9 @@ const {
   parseLiveTradingHTML,
   scrapeIndices,
   parseIndicesHTML,
-  parseProvidedIndicesHTML
+  parseProvidedIndicesHTML,
+  scrapeIndicesFromNepaliPaisa,
+  parseIndicesHTMLFromNepaliPaisa
 } = require('./app');
 const axios = require('axios');
 
@@ -200,10 +202,10 @@ app.post('/api/parse/direct-indices', (req, res) => {
       });
     }
     
-    const indicesData = parseProvidedIndicesHTML(req.body.html);
+    const result = parseIndicesHTML(req.body.html);
     res.json({
       success: true,
-      ...indicesData,
+      ...result,
       timestamp: new Date()
     });
   } catch (error) {
@@ -229,6 +231,50 @@ app.post('/api/parse/manual-indices', (req, res) => {
     // Parse the provided HTML directly
     const result = parseProvidedIndicesHTML(req.body.html);
     
+    res.json({
+      success: true,
+      ...result,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// Route to get indices data specifically from NepaliPaisa
+app.get('/api/indices/nepalipaisa', async (req, res) => {
+  try {
+    const indicesData = await scrapeIndicesFromNepaliPaisa();
+    res.json({
+      success: true,
+      ...indicesData,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// Route to parse NepaliPaisa HTML directly
+app.post('/api/parse/nepalipaisa-indices', (req, res) => {
+  try {
+    if (!req.body.html) {
+      return res.status(400).json({
+        success: false,
+        error: 'HTML content is required',
+        timestamp: new Date()
+      });
+    }
+    
+    const result = parseIndicesHTMLFromNepaliPaisa(req.body.html);
     res.json({
       success: true,
       ...result,
