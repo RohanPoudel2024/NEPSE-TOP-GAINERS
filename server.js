@@ -6,7 +6,8 @@ const {
   scrapeLiveTrading, 
   parseLiveTradingHTML,
   scrapeIndices,
-  parseIndicesHTML
+  parseIndicesHTML,
+  parseProvidedIndicesHTML
 } = require('./app');
 const axios = require('axios');
 
@@ -72,6 +73,29 @@ app.get('/api/live-trading', async (req, res) => {
 app.get('/api/indices', async (req, res) => {
   try {
     const indicesData = await scrapeIndices();
+    res.json({
+      success: true,
+      ...indicesData,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// Direct market indices fetch endpoint
+app.get('/api/indices-direct', async (req, res) => {
+  try {
+    // Make sure fetchIndexData is available
+    if (typeof fetchIndexData !== 'function') {
+      throw new Error('fetchIndexData function is not defined');
+    }
+    
+    const indicesData = await fetchIndexData();
     res.json({
       success: true,
       ...indicesData,
@@ -154,6 +178,60 @@ app.post('/api/parse/indices', (req, res) => {
     res.json({
       success: true,
       ...indicesData,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// Direct parse endpoint for testing
+app.post('/api/parse/direct-indices', (req, res) => {
+  try {
+    if (!req.body.html) {
+      return res.status(400).json({
+        success: false,
+        error: 'HTML content is required',
+        timestamp: new Date()
+      });
+    }
+    
+    const indicesData = parseProvidedIndicesHTML(req.body.html);
+    res.json({
+      success: true,
+      ...indicesData,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// Direct parse endpoint for the provided HTML snippet
+app.post('/api/parse/manual-indices', (req, res) => {
+  try {
+    if (!req.body.html) {
+      return res.status(400).json({
+        success: false,
+        error: 'HTML content is required',
+        timestamp: new Date()
+      });
+    }
+    
+    // Parse the provided HTML directly
+    const result = parseProvidedIndicesHTML(req.body.html);
+    
+    res.json({
+      success: true,
+      ...result,
       timestamp: new Date()
     });
   } catch (error) {
