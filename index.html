@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced NEPSE Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<!-- NEPSE Dashboard - Main Content Division -->
+<div class="nepse-dashboard-container">
+  <header class="dashboard-header">
+    <h1>Nepal Stock Exchange Dashboard</h1>
+    <div class="search-container">
+      <input type="text" id="stock-search" placeholder="Search by symbol or company name...">
+      <button id="search-button">Search</button>
+    </div>
+  </header>
+
+  <!-- Market Summary Section -->
+  <div class="dashboard-section market-summary">
+    <h2 class="section-title">NEPSE Market Summary</h2>
+    <div class="market-summary-grid">
+      <!-- Main NEPSE Index Card -->
+      <div class="summary-card primary-card">
+        <div class="summary-card-header">
+          <span>NEPSE Index</span>
+          <span id="market-status" class="market-status">Market Closed</span>
+        </div>
+        <div class="summary-card-body">
+          <div class="summary-index">
+            <span id="nepse-index">0.00</span>
+          </div>
+          <div class="summary-change-container">
+            <span id="nepse-change-points" class="summary-change-points">0.00</span>
+            <span id="nepse-change" class="summary-change">0.00%</span>
+          </div>
+        </div>
+        <div class="summary-card-footer">
+          <div class="summary-stat">
+            <span class="summary-label">Volume</span>
+            <span id="nepse-volume" class="summary-value">0</span>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-label">Turnover</span>
+            <span id="nepse-turnover" class="summary-value">Rs. 0</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Market Breadth Card -->
+      <div class="summary-card breadth-card">
+        <div class="summary-card-header">
+          <span>Market Breadth</span>
+        </div>
+        <div class="summary-card-body">
+          <div class="breadth-stats">
+            <div class="breadth-stat advance">
+              <span class="breadth-value" id="market-advancers">0</span>
+              <span class="breadth-label">Advancers</span>
+            </div>
+            <div class="breadth-stat unchanged">
+              <span class="breadth-value" id="market-unchanged">0</span>
+              <span class="breadth-label">Unchanged</span>
+            </div>
+            <div class="breadth-stat decline">
+              <span class="breadth-value" id="market-decliners">0</span>
+              <span class="breadth-label">Decliners</span>
+            </div>
+          </div>
+          <div class="breadth-visualization">
+            <div id="advance-bar" class="breadth-bar advance-bar"></div>
+            <div id="unchanged-bar" class="breadth-bar unchanged-bar"></div>
+            <div id="decline-bar" class="breadth-bar decline-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Last Updated Info -->
+      <div class="summary-card last-updated-card">
+        <div class="summary-card-body">
+          <div class="last-updated">
+            <span id="nepse-last-updated">Last updated: --:--:-- --</span>
+            <button id="refresh-button" class="refresh-button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs for Stocks and Indices -->
+  <div class="dashboard-section dashboard-tabs">
+    <div class="tabs-header">
+      <button class="tab-button active" data-tab="top-gainers">Top Gainers</button>
+      <button class="tab-button" data-tab="top-losers">Top Losers</button>
+      <button class="tab-button" data-tab="top-movers">Top Movers</button>
+      <button class="tab-button" data-tab="indices">Indices</button>
+      <button class="tab-button" data-tab="all-stocks">All Stocks</button>
+    </div>
+    
+    <!-- Top Gainers Tab Content -->
+    <div class="tab-content active" id="top-gainers-tab">
+      <div class="table-container">
+        <table class="data-table stocks-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th>LTP</th>
+              <th>Change</th>
+              <th>%Change</th>
+              <th>Volume</th>
+              <th>Turnover</th>
+            </tr>
+          </thead>
+          <tbody id="top-gainers-table-body">
+            <tr class="loading-row">
+              <td colspan="7">Loading top gainers data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Top Losers Tab Content -->
+    <div class="tab-content" id="top-losers-tab">
+      <div class="table-container">
+        <table class="data-table stocks-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th>LTP</th>
+              <th>Change</th>
+              <th>%Change</th>
+              <th>Volume</th>
+              <th>Turnover</th>
+            </tr>
+          </thead>
+          <tbody id="top-losers-table-body">
+            <tr class="loading-row">
+              <td colspan="7">Loading top losers data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Top Movers Tab Content -->
+    <div class="tab-content" id="top-movers-tab">
+      <div class="table-container">
+        <table class="data-table stocks-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th>LTP</th>
+              <th>Change</th>
+              <th>%Change</th>
+              <th>Volume</th>
+              <th>Turnover</th>
+            </tr>
+          </thead>
+          <tbody id="top-movers-table-body">
+            <tr class="loading-row">
+              <td colspan="7">Loading top movers data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Indices Tab Content -->
+    <div class="tab-content" id="indices-tab">
+      <div class="table-container">
+        <table class="data-table indices-table">
+          <thead>
+            <tr>
+              <th>Index</th>
+              <th>Value</th>
+              <th>Change</th>
+              <th>%Change</th>
+              <th>Turnover</th>
+            </tr>
+          </thead>
+          <tbody id="indices-table-body">
+            <tr class="loading-row">
+              <td colspan="5">Loading indices data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- All Stocks Tab Content -->
+    <div class="tab-content" id="all-stocks-tab">
+      <div class="table-container">
+        <div class="table-controls">
+          <div class="table-filter">
+            <select id="sector-filter">
+              <option value="all">All Sectors</option>
+              <!-- Will be populated dynamically -->
+            </select>
+          </div>
+          <div class="pagination">
+            <button id="prev-page" disabled>Previous</button>
+            <span id="page-info">Page 1 of 1</span>
+            <button id="next-page">Next</button>
+          </div>
+        </div>
+        <table class="data-table all-stocks-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="symbol">Symbol</th>
+              <th class="sortable" data-sort="name">Company</th>
+              <th class="sortable" data-sort="ltp">LTP</th>
+              <th class="sortable" data-sort="change">Change</th>
+              <th class="sortable" data-sort="percentChange">%Change</th>
+              <th class="sortable" data-sort="open">Open</th>
+              <th class="sortable" data-sort="high">High</th>
+              <th class="sortable" data-sort="low">Low</th>
+              <th class="sortable" data-sort="quantity">Volume</th>
+              <th class="sortable" data-sort="turnover">Turnover</th>
+            </tr>
+          </thead>
+          <tbody id="all-stocks-table-body">
+            <tr class="loading-row">
+              <td colspan="10">Loading all stocks data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Search Results Section (Hidden by default) -->
+  <div class="dashboard-section search-results-section" style="display: none;">
+    <h2 class="section-title">Search Results</h2>
+    <div class="table-container">
+      <table class="data-table search-results-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Company</th>
+            <th>LTP</th>
+            <th>Change</th>
+            <th>%Change</th>
+            <th>Volume</th>
+            <th>Turnover</th>
+          </tr>
+        </thead>
+        <tbody id="search-results-table-body">
+          <!-- Search results will be displayed here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Base Styles */
+:root {
+  --primary-color: #0369a1;
+  --primary-light: #e0f2fe;
+  --primary-dark: #075985;
+  --positive-color: #047857;
+  --positive-bg: rgba(16, 185, 129, 0.2);
+  --negative-color: #b91c1c;
+  --negative-bg: rgba(239, 68, 68, 0.2);
+  --neutral-color: #4b5563;
+  --border-color: #e5e7eb;
+  --bg-color: #f9fafb;
+  --card-bg: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --header-bg: #1e40af;
+  --header-text: #ffffff;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+}
+
+/* Dashboard Container */
+.nepse-dashboard-container {
+  color: var(--text-primary);
+  background-color: var(--bg-color);
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0;
+}
+
+.search-container {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#stock-search {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  width: 300px;
+  max-width: 100%;
+}
+
+#search-button {
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+#search-button:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Section Styles */
+.dashboard-section {
+  margin-bottom: 2rem;
+  background-color: var(--card-bg);
+  border-radius: 0.5rem;
+  box-shadow: var(--card-shadow);
+  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* Market Summary Grid */
+.market-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Summary Cards */
+.summary-card {
+  background-color: var(--card-bg);
+  border-radius: 0.5rem;
+  box-shadow: var(--card-shadow);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+}
+
+.summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.summary-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.primary-card .summary-card-body {
+  align-items: center;
+  text-align: center;
+}
+
+.summary-index {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.summary-change-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.summary-change-points {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.summary-change {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.summary-card-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Market Status */
+.market-status {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: var(--negative-bg);
+  color: var(--negative-color);
+}
+
+/* Market Breadth */
+.breadth-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.breadth-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+}
+
+.breadth-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.breadth-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.breadth-stat.advance .breadth-value {
+  color: var(--positive-color);
+}
+
+.breadth-stat.decline .breadth-value {
+  color: var(--negative-color);
+}
+
+.breadth-visualization {
+  display: flex;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.breadth-bar {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.advance-bar {
+  background-color: var(--positive-color);
+  width: 33.33%;
+}
+
+.unchanged-bar {
+  background-color: var(--neutral-color);
+  width: 33.33%;
+}
+
+.decline-bar {
+  background-color: var(--negative-color);
+  width: 33.33%;
+}
+
+/* Last Updated */
+.last-updated-card {
+  grid-column: span 2;
+}
+
+.last-updated {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refresh-button:hover {
+  background-color: #bfdbfe;
+}
+
+/* Tabs Styling */
+.tabs-header {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs-header::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-header::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 4px;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  position: relative;
+  white-space: nowrap;
+}
+
+.tab-button.active {
+  color: var(--primary-color);
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--primary-color);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Table Controls */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination button {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.pagination button:hover:not([disabled]) {
+  background-color: #bfdbfe;
+}
+
+.pagination button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#page-info {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+#sector-filter {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+  background-color: var(--primary-light);
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--primary-color);
+  position: sticky;
+  top: 0;
+}
+
+.data-table th.sortable {
+  cursor: pointer;
+  position: relative;
+}
+
+.data-table th.sortable::after {
+  content: '⇅';
+  position: absolute;
+  right: 8px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.data-table th.sorted-asc::after {
+  content: '↑';
+  opacity: 1;
+}
+
+.data-table th.sorted-desc::after {
+  content: '↓';
+  opacity: 1;
+}
+
+.data-table td {
+  font-size: 0.875rem;
+}
+
+.loading-row td {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Stock Table Specific */
+.stock-symbol {
+  font-weight: 600;
+}
+
+.stock-name {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-ltp {
+  font-weight: 500;
+}
+
+.stock-volume,
+.stock-turnover,
+.index-turnover {
+  text-align: right;
+}
+
+/* Indices Table Specific */
+.index-name {
+  font-weight: 500;
+}
+
+.index-value {
+  font-weight: 500;
+}
+
+/* Positive/Negative Values */
+.positive {
+  color: var(--positive-color);
+}
+
+.negative {
+  color: var(--negative-color);
+}
+
+/* Highlighting on updates */
+.highlight {
+  animation: highlight-row 2s ease-out;
+}
+
+@keyframes highlight-row {
+  0% {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .nepse-dashboard-container {
+    padding: 1rem;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .search-container {
+    width: 100%;
+  }
+  
+  #stock-search {
+    flex-grow: 1;
+  }
+  
+  .market-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .last-updated-card {
+    grid-column: span 1;
+  }
+  
+  .summary-index {
+    font-size: 2rem;
+  }
+  
+  .tab-button {
+    padding: 0.5rem 1rem;
+  }
+  
+  .table-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .pagination, .table-filter {
+    width: 100%;
+  }
+  
+  #sector-filter {
+    width: 100%;
+  }
+}
+</style>
+
+<script>
+// Initialize global variables
+let nepseAllStocks = [];
+let indicesData = [];
+let lastUpdateTime = null;
+let currentTab = 'top-gainers';
+let filteredStocks = [];
+let searchResults = [];
+
+// Pagination variables
+let currentPage = 1;
+let itemsPerPage = 25;
+let totalPages = 1;
+
+// Sorting variables
+let sortColumn = 'symbol';
+let sortDirection = 'asc';
+
+// DOM element references
+let nepseIndexEl, nepseChangeEl, nepseVolumeEl, nepseTurnoverEl, nepseLastUpdatedEl;
+let topGainersTableBody, topLosersTableBody, topMoversTableBody, indicesTableBody, allStocksTableBody, searchResultsTableBody;
+let searchInput, searchButton, refreshButton;
+let sectorFilter, prevPageButton, nextPageButton, pageInfoEl;
+
+// Initialize DOM elements when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Get references to DOM elements
+  nepseIndexEl = document.getElementById('nepse-index');
+  nepseChangeEl = document.getElementById('nepse-change');
+  nepseVolumeEl = document.getElementById('nepse-volume');
+  nepseTurnoverEl = document.getElementById('nepse-turnover');
+  nepseLastUpdatedEl = document.getElementById('nepse-last-updated');
+  
+  topGainersTableBody = document.getElementById('top-gainers-table-body');
+  topLosersTableBody = document.getElementById('top-losers-table-body');
+  topMoversTableBody = document.getElementById('top-movers-table-body');
+  indicesTableBody = document.getElementById('indices-table-body');
+  allStocksTableBody = document.getElementById('all-stocks-table-body');
+  searchResultsTableBody = document.getElementById('search-results-table-body');
+  
+  searchInput = document.getElementById('stock-search');
+  searchButton = document.getElementById('search-button');
+  refreshButton = document.getElementById('refresh-button');
+  
+  sectorFilter = document.getElementById('sector-filter');
+  prevPageButton = document.getElementById('prev-page');
+  nextPageButton = document.getElementById('next-page');
+  pageInfoEl = document.getElementById('page-info');
+  
+  // Set up event listeners
+  setupEventListeners();
+  
+  // Initial data load
+  updateNepseData();
+  
+  // Set up refresh interval (e.g., every 60 seconds)
+  setInterval(updateNepseData, 60000);
+});
+
+// Set up event listeners
+function setupEventListeners() {
+  // Tab switching
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', function() {
+      const tab = this.dataset.tab;
+      
+      // Update active tab
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      this.classList.add('active');
+      
+      // Show corresponding tab content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`${tab}-tab`).classList.add('active');
+      
+      currentTab = tab;
+      
+      // If switching to all stocks, update pagination
+      if (tab === 'all-stocks') {
+        currentPage = 1;
+        updatePagination();
+      }
+    });
+  });
+  
+  // Search functionality
+  if (searchButton) {
+    searchButton.addEventListener('click', performSearch);
+  }
+  
+  if (searchInput) {
+    searchInput.addEventListener('keyup', function(event) {
+      if (event.key === 'Enter') {
+        performSearch();
+      }
+    });
+  }
+  
+  // Manual refresh
+  if (refreshButton) {
+    refreshButton.addEventListener('click', function() {
+      updateNepseData();
+    });
+  }
+  
+  // Pagination
+  if (prevPageButton) {
+    prevPageButton.addEventListener('click', function() {
+      if (currentPage > 1) {
+        currentPage--;
+        updatePagination();
+      }
+    });
+  }
+  
+  if (nextPageButton) {
+    nextPageButton.addEventListener('click', function() {
+      if (currentPage < totalPages) {
+        currentPage++;
+        updatePagination();
+      }
+    });
+  }
+  
+  // Sector filter
+  if (sectorFilter) {
+    sectorFilter.addEventListener('change', function() {
+      currentPage = 1;
+      filterStocksBySector();
+    });
+  }
+  
+  // Sortable columns
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      
+      // Toggle sort direction if clicking on the same column
+      if (sortColumn === column) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortColumn = column;
+        sortDirection = 'asc';
+      }
+      
+      // Update sort UI
+      document.querySelectorAll('th.sortable').forEach(el => {
+        el.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      
+      this.classList.add(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      
+      // Apply sorting and update pagination
+      sortStocks();
+      updatePagination();
+    });
+  });
+}
+
+// Format
+// Format large numbers with commas
+function formatNumber(num) {
+  return new Intl.NumberFormat('en-US').format(num);
+}
+
+// Format time as HH:MM:SS AM/PM
+function formatTime(date) {
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    hour12: true
+  });
+}
+
+// Update market summary with data
+function updateMarketSummary(indicesData, stocksData) {
+  // Find the NEPSE index entry from the indices data - note case insensitive search
+  const nepseIndex = indicesData.find(index => 
+    index.name.toLowerCase() === "nepse");
+  
+  if (nepseIndex && nepseIndexEl && nepseChangeEl && nepseVolumeEl && nepseTurnoverEl) {
+    // Update NEPSE index value
+    nepseIndexEl.textContent = nepseIndex.value.toFixed(2);
+    
+    // Calculate change values
+    const pointChange = nepseIndex.change || 0;
+    const percentChange = nepseIndex.percentChange || 0;
+    
+    // Determine positive or negative change
+    const changeClass = percentChange >= 0 ? 'positive' : 'negative';
+    const changeSign = percentChange >= 0 ? '+' : '';
+    
+    // Update points change
+    const nepseChangePointsEl = document.getElementById('nepse-change-points');
+    if (nepseChangePointsEl) {
+      nepseChangePointsEl.textContent = `${changeSign}${Math.abs(pointChange).toFixed(2)}`;
+      nepseChangePointsEl.className = `summary-change-points ${changeClass}`;
+    }
+    
+    // Update percentage change
+    nepseChangeEl.textContent = `${changeSign}${Math.abs(percentChange).toFixed(2)}%`;
+    nepseChangeEl.className = `summary-change ${changeClass}`;
+    
+    // Calculate total volume from stock data
+    const totalVolume = stocksData.reduce((sum, stock) => sum + (parseInt(stock.quantity) || 0), 0);
+    nepseVolumeEl.textContent = formatNumber(totalVolume);
+    
+    // Calculate turnover (rough estimate: volume * average price)
+    const totalTurnover = stocksData.reduce((sum, stock) => {
+      return sum + ((parseFloat(stock.ltp) || 0) * (parseInt(stock.quantity) || 0));
+    }, 0);
+    
+    nepseTurnoverEl.textContent = `Rs. ${formatNumber(Math.round(totalTurnover))}`;
+    
+    // Update market breadth data
+    if (stocksData && stocksData.length > 0) {
+      // Count advancers, decliners, and unchanged
+      const advancers = stocksData.filter(stock => parseFloat(stock.percentChange) > 0).length;
+      const decliners = stocksData.filter(stock => parseFloat(stock.percentChange) < 0).length;
+      const unchanged = stocksData.filter(stock => parseFloat(stock.percentChange) === 0).length;
+      
+      // Update the counts
+      const advancersEl = document.getElementById('market-advancers');
+      const declinersEl = document.getElementById('market-decliners');
+      const unchangedEl = document.getElementById('market-unchanged');
+      
+      if (advancersEl) advancersEl.textContent = advancers;
+      if (declinersEl) declinersEl.textContent = decliners;
+      if (unchangedEl) unchangedEl.textContent = unchanged;
+      
+      // Calculate percentages for breadth visualization
+      const total = advancers + decliners + unchanged;
+      if (total > 0) {
+        const advancePct = (advancers / total) * 100;
+        const unchangedPct = (unchanged / total) * 100;
+        const declinePct = (decliners / total) * 100;
+        
+        // Update breadth visualization bars
+        const advanceBarEl = document.getElementById('advance-bar');
+        const unchangedBarEl = document.getElementById('unchanged-bar');
+        const declineBarEl = document.getElementById('decline-bar');
+        
+        if (advanceBarEl) advanceBarEl.style.width = `${advancePct}%`;
+        if (unchangedBarEl) unchangedBarEl.style.width = `${unchangedPct}%`;
+        if (declineBarEl) declineBarEl.style.width = `${declinePct}%`;
+      }
+    }
+    
+    // Update market status based on time
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const isMarketOpen = (hours >= 11 && hours < 15) || (hours === 15 && minutes < 30);
+    
+    const marketStatusEl = document.getElementById('market-status');
+    if (marketStatusEl) {
+      if (isMarketOpen) {
+        marketStatusEl.textContent = 'Market Open';
+        marketStatusEl.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+        marketStatusEl.style.color = '#047857';
+      } else {
+        marketStatusEl.textContent = 'Market Closed';
+        marketStatusEl.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+        marketStatusEl.style.color = '#b91c1c';
+      }
+    }
+    
+    // Update last updated time
+    if (nepseLastUpdatedEl && lastUpdateTime) {
+      nepseLastUpdatedEl.textContent = 'Last updated: ' + formatTime(lastUpdateTime);
+    }
+  }
+}
+
+// Render top gainers table
+function renderTopGainersTable(stocks, changedSymbols = []) {
+  if (!topGainersTableBody) return;
+  
+  let html = '';
+  
+  if (stocks.length === 0) {
+    html = `
+      <tr class="loading-row">
+        <td colspan="7">Loading top gainers data...</td>
+      </tr>
+    `;
+  } else {
+    // Get top gainers (positive change) sorted by percentage change
+    const topGainers = [...stocks]
+      .filter(stock => parseFloat(stock.percentChange) > 0)
+      .sort((a, b) => parseFloat(b.percentChange) - parseFloat(a.percentChange))
+      .slice(0, 10);
+    
+    topGainers.forEach(stock => {
+      const isHighlighted = changedSymbols.includes(stock.symbol);
+      const changeSign = '+'; // All are positive in this view
+      
+      // Calculate change in points
+      const change = stock.diff || (stock.ltp - (stock.pclose || 0));
+      
+      html += `
+        <tr class="${isHighlighted ? 'highlight' : ''}">
+          <td class="stock-symbol">${stock.symbol}</td>
+          <td class="stock-name">${stock.fullName || stock.symbol}</td>
+          <td class="stock-ltp">${parseFloat(stock.ltp).toFixed(2)}</td>
+          <td class="stock-change positive">${changeSign}${Math.abs(change).toFixed(2)}</td>
+          <td class="stock-percent positive">${changeSign}${Math.abs(parseFloat(stock.percentChange)).toFixed(2)}%</td>
+          <td class="stock-volume">${formatNumber(parseInt(stock.quantity) || 0)}</td>
+          <td class="stock-turnover">${formatNumber(Math.round((parseFloat(stock.ltp) || 0) * (parseInt(stock.quantity) || 0)))}</td>
+        </tr>
+      `;
+    });
+    
+    if (topGainers.length === 0) {
+      html = `
+        <tr class="loading-row">
+          <td colspan="7">No gainers found</td>
+        </tr>
+      `;
+    }
+  }
+  
+  topGainersTableBody.innerHTML = html;
+}
+
+// Render top losers table
+function renderTopLosersTable(stocks, changedSymbols = []) {
+  if (!topLosersTableBody) return;
+  
+  let html = '';
+  
+  if (stocks.length === 0) {
+    html = `
+      <tr class="loading-row">
+        <td colspan="7">Loading top losers data...</td>
+      </tr>
+    `;
+  } else {
+    // Get top losers (negative change) sorted by percentage change
+    const topLosers = [...stocks]
+      .filter(stock => parseFloat(stock.percentChange) < 0)
+      .sort((a, b) => parseFloat(a.percentChange) - parseFloat(b.percentChange))
+      .slice(0, 10);
+    
+    topLosers.forEach(stock => {
+      const isHighlighted = changedSymbols.includes(stock.symbol);
+      const changeSign = ''; // Already negative
+      
+      // Calculate change in points
+      const change = stock.diff || (stock.ltp - (stock.pclose || 0));
+      
+      html += `
+        <tr class="${isHighlighted ? 'highlight' : ''}">
+          <td class="stock-symbol">${stock.symbol}</td>
+          <td class="stock-name">${stock.fullName || stock.symbol}</td>
+          <td class="stock-ltp">${parseFloat(stock.ltp).toFixed(2)}</td>
+          <td class="stock-change negative">${changeSign}${change.toFixed(2)}</td>
+          <td class="stock-percent negative">${changeSign}${parseFloat(stock.percentChange).toFixed(2)}%</td>
+          <td class="stock-volume">${formatNumber(parseInt(stock.quantity) || 0)}</td>
+          <td class="stock-turnover">${formatNumber(Math.round((parseFloat(stock.ltp) || 0) * (parseInt(stock.quantity) || 0)))}</td>
+        </tr>
+      `;
+    });
+    
+    if (topLosers.length === 0) {
+      html = `
+        <tr class="loading-row">
+          <td colspan="7">No losers found</td>
+        </tr>
+      `;
+    }
+  }
+  
+  topLosersTableBody.innerHTML = html;
+}
+
+// Render top movers table
+function renderTopMoversTable(stocks, changedSymbols = []) {
+  if (!topMoversTableBody) return;
+  
+  let html = '';
+  
+  if (stocks.length === 0) {
+    html = `
+      <tr class="loading-row">
+        <td colspan="7">Loading top movers data...</td>
+      </tr>
+    `;
+  } else {
+    // Get top movers (by volume)
+    const topMovers = [...stocks]
+      .sort((a, b) => parseInt(b.quantity || 0) - parseInt(a.quantity || 0))
+      .slice(0, 10);
+    
+    topMovers.forEach(stock => {
+      const isHighlighted = changedSymbols.includes(stock.symbol);
+      const changeClass = parseFloat(stock.percentChange) > 0 ? 'positive' : 
+                          parseFloat(stock.percentChange) < 0 ? 'negative' : '';
+      const changeSign = parseFloat(stock.percentChange) >= 0 ? '+' : '';
+      
+      // Calculate change in points
+      const change = stock.diff || (stock.ltp - (stock.pclose || 0));
+      
+      html += `
+        <tr class="${isHighlighted ? 'highlight' : ''}">
+          <td class="stock-symbol">${stock.symbol}</td>
+          <td class="stock-name">${stock.fullName || stock.symbol}</td>
+          <td class="stock-ltp">${parseFloat(stock.ltp).toFixed(2)}</td>
+          <td class="stock-change ${changeClass}">${changeSign}${Math.abs(change).toFixed(2)}</td>
+          <td class="stock-percent ${changeClass}">${changeSign}${Math.abs(parseFloat(stock.percentChange)).toFixed(2)}%</td>
+          <td class="stock-volume">${formatNumber(parseInt(stock.quantity) || 0)}</td>
+          <td class="stock-turnover">${formatNumber(Math.round((parseFloat(stock.ltp) || 0) * (parseInt(stock.quantity) || 0)))}</td>
+        </tr>
+      `;
+    });
+  }
+  
+  topMoversTableBody.innerHTML = html;
+}
+
+// Render indices table
+function renderIndicesTable(indices) {
+  if (!indicesTableBody) return;
+  
+  let html = '';
+  
+  if (indices.length === 0) {
+    html = `
+      <tr class="loading-row">
+        <td colspan="5">Loading indices data...</td>
+      </tr>
+    `;
+  } else {
+    indices.forEach(index => {
+      const changeClass = parseFloat(index.percentChange) > 0 ? 'positive' : 
+                          parseFloat(index.percentChange) < 0 ? 'negative' : '';
+      const changeSign = parseFloat(index.percentChange) >= 0 ? '+' : '';
+      
+      // Use the change value directly from API or calculate it
+      const pointChange = index.change !== undefined ? parseFloat(index.change) : 
+                          (index.value * index.percentChange / 100);
+      
+      html += `
+        <tr>
+          <td class="index-name">${index.name}</td>
+          <td class="index-value">${parseFloat(index.value).toFixed(2)}</td>
+          <td class="index-change ${changeClass}">${changeSign}${Math.abs(pointChange).toFixed(2)}</td>
+          <td class="index-percent ${changeClass}">${changeSign}${Math.abs(parseFloat(index.percentChange)).toFixed(2)}%</td>
+          <td class="index-turnover">${formatNumber(Math.round(index.turnover || 0))}</td>
+        </tr>
+      `;
+    });
+  }
+  
+  indicesTableBody.innerHTML = html;
+}
+
+// Populate sector filter dropdown
+function populateSectorFilter(stocks) {
+  if (!sectorFilter) return;
+  
+  // Extract unique sectors
+  const sectors = [...new Set(stocks.map(stock => stock.sector || 'Unknown'))].sort();
+  
+  let html = '<option value="all">All Sectors</option>';
+  sectors.forEach(sector => {
+    html += `<option value="${sector}">${sector}</option>`;
+  });
+  
+  sectorFilter.innerHTML = html;
+}
+
+// Filter stocks by sector
+function filterStocksBySector() {
+  const selectedSector = sectorFilter.value;
+  
+  if (selectedSector === 'all') {
+    filteredStocks = [...nepseAllStocks];
+  } else {
+    filteredStocks = nepseAllStocks.filter(stock => (stock.sector || 'Unknown') === selectedSector);
+  }
+  
+  // Apply current sort after filtering
+  sortStocks();
+  
+  // Update pagination after filtering
+  totalPages = Math.ceil(filteredStocks.length / itemsPerPage);
+  currentPage = 1;
+  updatePagination();
+}
+
+// Sort stocks based on current sort column and direction
+function sortStocks() {
+  // Apply selected sorting
+  filteredStocks.sort((a, b) => {
+    let valueA, valueB;
+    
+    // Handle different data types for different columns
+    switch (sortColumn) {
+      case 'symbol':
+      case 'name':
+        valueA = (a[sortColumn] || '').toString().toLowerCase();
+        valueB = (b[sortColumn] || '').toString().toLowerCase();
+        break;
+      case 'ltp':
+      case 'open':
+      case 'high':
+      case 'low':
+      case 'change':
+      case 'percentChange':
+        valueA = parseFloat(a[sortColumn] || 0);
+        valueB = parseFloat(b[sortColumn] || 0);
+        break;
+      case 'quantity':
+      case 'turnover':
+        valueA = parseInt(a[sortColumn] || 0);
+        valueB = parseInt(b[sortColumn] || 0);
+        break;
+      default:
+        valueA = a[sortColumn];
+        valueB = b[sortColumn];
+    }
+    
+    // Apply sort direction
+    if (sortDirection === 'asc') {
+      if (valueA < valueB) return -1;
+      if (valueA > valueB) return 1;
+      return 0;
+    } else {
+      if (valueA > valueB) return -1;
+      if (valueA < valueB) return 1;
+      return 0;
+    }
+  });
+}
+
+// Render all stocks table with pagination
+function renderAllStocksTable() {
+  if (!allStocksTableBody) return;
+  
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredStocks.length);
+  const currentItems = filteredStocks.slice(startIndex, endIndex);
+  
+  let html = '';
+  
+  if (currentItems.length === 0) {
+    html = `
+      <tr class="loading-row">
+        <td colspan="10">No stocks found</td>
+      </tr>
+    `;
+  } else {
+    currentItems.forEach(stock => {
+      const changeClass = parseFloat(stock.percentChange) > 0 ? 'positive' : 
+                          parseFloat(stock.percentChange) < 0 ? 'negative' : '';
+      const changeSign = parseFloat(stock.percentChange) >= 0 ? '+' : '';
+      
+      // Calculate change in points
+      const change = stock.diff || (stock.ltp - (stock.pclose || 0));
+      
+      html += `
+        <tr>
+          <td class="stock-symbol">${stock.symbol}</td>
+          <td class="stock-name">${stock.fullName || stock.symbol}</td>
+          <td class="stock-ltp">${parseFloat(stock.ltp).toFixed(2)}</td>
+          <td class="stock-change ${changeClass}">${changeSign}${Math.abs(change).toFixed(2)}</td>
+          <td class="stock-percent ${changeClass}">${changeSign}${Math.abs(parseFloat(stock.percentChange)).toFixed(2)}%</td>
+          <td class="stock-open">${parseFloat(stock.open || 0).toFixed(2)}</td>
+          <td class="stock-high">${parseFloat(stock.high || 0).toFixed(2)}</td>
+          <td class="stock-low">${parseFloat(stock.low || 0).toFixed(2)}</td>
+          <td class="stock-volume">${formatNumber(parseInt(stock.quantity) || 0)}</td>
+          <td class="stock-turnover">${formatNumber(Math.round((parseFloat(stock.ltp) || 0) * (parseInt(stock.quantity) || 0)))}</td>
+        </tr>
+      `;
+    });
+  }
+  
+  allStocksTableBody.innerHTML = html;
+}
+
+// Update pagination controls
+function updatePagination() {
+  // Update total pages
+  totalPages = Math.ceil(filteredStocks.length / itemsPerPage);
+  
+  // Update page info text
+  if (pageInfoEl) {
+    pageInfoEl.textContent = `Page ${currentPage} of ${totalPages || 1}`;
+  }
+  
+  // Enable/disable pagination buttons
+  if (prevPageButton) {
+    prevPageButton.disabled = currentPage <= 1;
+  }
+  
+  if (nextPageButton) {
+    nextPageButton.disabled = currentPage >= totalPages;
+  }
+  
+  // Render current page of stocks
+  renderAllStocksTable();
+}
+
+// Search functionality
+function performSearch() {
+  const searchTerm = searchInput.value.trim().toLowerCase();
+  
+  if (!searchTerm) {
+    document.querySelector('.search-results-section').style.display = 'none';
+    return;
+  }
+  
+  // Search in symbol and company name
+  searchResults = nepseAllStocks.filter(stock => 
+    stock.symbol.toLowerCase().includes(searchTerm) || 
+    (stock.fullName && stock.fullName.toLowerCase().includes(searchTerm))
+  );
+  
+  // Display search results
+  renderSearchResults();
+  document.querySelector('.search-results-section').style.display = 'block';
+}
+
+// Render search results
+function renderSearchResults() {
+  if (!searchResultsTableBody) return;
+  
+  let html = '';
+  
+  if (searchResults.length === 0) {
+    html = `
+      <tr class="loading-row">
+        <td colspan="7">No matching stocks found</td>
+      </tr>
+    `;
+  } else {
+    searchResults.forEach(stock => {
+      const changeClass = parseFloat(stock.percentChange) > 0 ? 'positive' : 
+                          parseFloat(stock.percentChange) < 0 ? 'negative' : '';
+      const changeSign = parseFloat(stock.percentChange) >= 0 ? '+' : '';
+      
+      // Calculate change in points
+      const change = stock.diff || (stock.ltp - (stock.pclose || 0));
+      
+      html += `
+        <tr>
+          <td class="stock-symbol">${stock.symbol}</td>
+          <td class="stock-name">${stock.fullName || stock.symbol}</td>
+          <td class="stock-ltp">${parseFloat(stock.ltp).toFixed(2)}</td>
+          <td class="stock-change ${changeClass}">${changeSign}${Math.abs(change).toFixed(2)}</td>
+          <td class="stock-percent ${changeClass}">${changeSign}${Math.abs(parseFloat(stock.percentChange)).toFixed(2)}%</td>
+          <td class="stock-volume">${formatNumber(parseInt(stock.quantity) || 0)}</td>
+          <td class="stock-turnover">${formatNumber(Math.round((parseFloat(stock.ltp) || 0) * (parseInt(stock.quantity) || 0)))}</td>
+        </tr>
+      `;
+    });
+  }
+  
+  searchResultsTableBody.innerHTML = html;
+}
+
+// Main function to update NEPSE data
+function updateNepseData() {
+  // Fetch stock data
+  fetch('https://nepse-top-gainers.onrender.com/api/live-trading')
+    .then(res => res.json())
+    .then(json => {
+      if (json.success) {
+        lastUpdateTime = new Date();
+        
+        // Find changed stocks by comparing with previous data
+        const changedSymbols = [];
+        json.data.forEach(stock => {
+          const existing = nepseAllStocks.find(s => s.symbol === stock.symbol);
+          if (existing && existing.ltp !== stock.ltp) {
+            changedSymbols.push(stock.symbol);
+          }
+        });
+        
+        // Update stock data
+        nepseAllStocks = json.data;
+        
+        // Extract sectors for filter
+        populateSectorFilter(nepseAllStocks);
+        
+        // Update filtered stocks for all stocks view
+        filteredStocks = [...nepseAllStocks];
+        
+        // Update pagination
+        totalPages = Math.ceil(filteredStocks.length / itemsPerPage);
+        if (currentPage > totalPages) {
+          currentPage = totalPages;
+        }
+        
+        // Render all tables
+        renderTopGainersTable(nepseAllStocks, changedSymbols);
+        renderTopLosersTable(nepseAllStocks, changedSymbols);
+        renderTopMoversTable(nepseAllStocks, changedSymbols);
+        
+        // Update pagination if on all stocks tab
+        if (currentTab === 'all-stocks') {
+          updatePagination();
+        }
+        
+        // If we already have indices data, update the summary
+        if (indicesData.length > 0) {
+          updateMarketSummary(indicesData, nepseAllStocks);
+        }
+        
+        // If search is active, update search results
+        if (document.querySelector('.search-results-section').style.display !== 'none') {
+          performSearch();
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching NEPSE stock data:", err);
+      const errorMsg = `
+        <tr class="loading-row">
+          <td colspan="7" style="color:#ef4444">
+            Unable to fetch stock data. Please try again later.
+          </td>
+        </tr>
+      `;
+      
+      if (topGainersTableBody) topGainersTableBody.innerHTML = errorMsg;
+      if (topLosersTableBody) topLosersTableBody.innerHTML = errorMsg;
+      if (topMoversTableBody) topMoversTableBody.innerHTML = errorMsg;
+      if (allStocksTableBody) allStocksTableBody.innerHTML = errorMsg;
+    });
+  
+  // Fetch indices data
+  fetch('https://nepse-top-gainers.onrender.com/api/indices')
+    .then(res => res.json())
+    .then(json => {
+      if (json.success) {
+        indicesData = json.data;
+        renderIndicesTable(indicesData);
+        updateMarketSummary(indicesData, nepseAllStocks);
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching NEPSE indices data:", err);
+      if (indicesTableBody) {
+        indicesTableBody.innerHTML = `
+          <tr class="loading-row">
+            <td colspan="5" style="color:#ef4444">
+              Unable to fetch indices data. Please try again later.
+            </td>
+          </tr>
+        `;
+      }
+    });
+}
+</script>

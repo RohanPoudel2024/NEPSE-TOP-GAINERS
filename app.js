@@ -595,6 +595,600 @@ async function scrapeIndices() {
   }
 }
 
+// Enhanced floorsheet data scraping function with reliable sources
+async function scrapeFloorsheetData(symbol) {
+  try {
+    if (!symbol) {
+      throw new Error('Stock symbol is required');
+    }
+    
+    symbol = symbol.toUpperCase();
+    console.log(`Attempting to scrape floorsheet data for ${symbol} from sources...`);
+    
+    // Try sources in sequence until we get data - removed NepseAlpha
+    const sources = [
+      { name: 'MeroLagani Direct', fn: fetchMeroLaganiDirectFloorsheet },
+      { name: 'ShareSansar', fn: fetchShareSansarFloorsheet },
+      { name: 'Historical Data', fn: fetchHistoricalFloorsheet }
+    ];
+    
+    let lastError = null;
+    
+    // Try each source until one succeeds
+    for (const source of sources) {
+      try {
+        console.log(`Trying ${source.name} source for ${symbol}...`);
+        const result = await source.fn(symbol);
+        
+        // If we got transactions or a valid result, return it
+        if (result && result.success && result.data && 
+            (result.data.floorsheet.length > 0 || result.data.message)) {
+          console.log(`Successfully got data from ${source.name} with ${result.data.floorsheet.length} transactions`);
+          return result;
+        }
+        
+        console.log(`${source.name} returned no transactions, trying next source...`);
+      } catch (error) {
+        console.error(`Error from ${source.name}:`, error.message);
+        lastError = error;
+      }
+    }
+    
+    // If all sources failed, return a default response
+    return createEmptyFloorsheetResponse(symbol, symbol, "No floorsheet data could be retrieved from any source");
+    
+  } catch (error) {
+    console.error(`General error in floorsheet scraping for ${symbol}:`, error.message);
+    return {
+      success: false,
+      error: `Failed to fetch floorsheet data: ${error.message}`,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+// MeroLagani Direct Approach - Fixed to filter by company symbol
+async function fetchMeroLaganiDirectFloorsheet(symbol) {
+  try {
+    symbol = symbol.toUpperCase();
+    console.log(`Fetching from MeroLagani CompanyDetail page for ${symbol}...`);
+    
+    const requestOptions = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache'
+      },
+      timeout: 15000
+    };
+    
+    // Use company-specific floorsheet URL instead of general page
+    const companyFloorsheetUrl = `https://merolagani.com/CompanyFloorSheet.aspx?symbol=${symbol}`;
+    console.log(`Requesting company-specific floorsheet from: ${companyFloorsheetUrl}`);
+    
+    const response = await axios.get(companyFloorsheetUrl, requestOptions);
+    const html = response.data;
+    const $ = cheerio.load(html);
+    
+    // Get company name
+    const companyName = $('#ctl00_ContentPlaceHolder1_CompanyDetail1_companyName').text().trim() || 
+                       $('.company-title').text().trim() || symbol;
+    
+    console.log(`Found company name: ${companyName}`);
+    
+    // Verify this is the correct company page
+    if ($('body').text().toLowerCase().includes(`no floorsheet found for ${symbol.toLowerCase()}`)) {
+      console.log(`No floorsheet found for ${symbol}`);
+      return createEmptyFloorsheetResponse(symbol, companyName);
+    }
+    
+    // Process the floorsheet table
+    const floorsheetTable = $('table.table-bordered');
+    if (floorsheetTable.length) {
+      const transactions = [];
+      
+      floorsheetTable.find('tbody tr').each((index, row) => {
+        try {
+          const cells = $(row).find('td');
+          if (cells.length >= 6) {
+            // Verify this is a valid data row
+            if ($(cells[0]).text().trim() === "") return;
+            
+            // Extract data carefully
+            const sn = parseInt($(cells[0]).text().trim()) || index + 1;
+            const contractNo = $(cells[1]).text().trim();
+            // For company-specific page, buyer is at index 2 and seller at index 3
+            const buyer = parseInt($(cells[2]).text().trim()) || 0;
+            const seller = parseInt($(cells[3]).text().trim()) || 0;
+            const quantity = parseNumberValue($(cells[4]).text().trim());
+            const rate = parseNumberValue($(cells[5]).text().trim());
+            const amount = cells.length > 6 ? 
+              parseNumberValue($(cells[6]).text().trim()) : 
+              (quantity * rate);
+            
+            // Only include rows with valid data
+            if (quantity > 0 && rate > 0) {
+              transactions.push({
+                sn,
+                contract_no: contractNo,
+                stockholder: symbol,
+                buyer,
+                seller,
+                quantity,
+                rate,
+                amount
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`Error parsing row ${index}:`, err.message);
+        }
+      });
+      
+      if (transactions.length > 0) {
+        const summary = calculateFloorsheetSummary(transactions);
+        
+        return {
+          success: true,
+          data: {
+            symbol,
+            companyName,
+            floorsheetDate: new Date().toISOString().split('T')[0],
+            totalRecords: transactions.length,
+            floorsheet: transactions,
+            summary,
+            source: 'MeroLagani Company-Specific'
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+    
+    // If the company-specific page didn't give results, try the general page with filtering
+    console.log(`No transactions found in company page, trying general floorsheet with filtering...`);
+    
+    // Get general floorsheet and filter by the symbol
+    const generalResponse = await axios.get(`https://merolagani.com/Floorsheet.aspx`, requestOptions);
+    const generalHtml = generalResponse.data;
+    const $general = cheerio.load(generalHtml);
+    
+    // Find the floorsheet table
+    const generalTable = $general('table.table-bordered');
+    if (generalTable.length) {
+      const transactions = [];
+      
+      generalTable.find('tbody tr').each((index, row) => {
+        try {
+          const cells = $general(row).find('td');
+          
+          // General floorsheet includes company symbol at index 2
+          if (cells.length >= 7) {
+            const stockSymbol = $general(cells[2]).text().trim();
+            
+            // Only include rows for the requested symbol
+            if (stockSymbol.toUpperCase() === symbol) {
+              const sn = parseInt($general(cells[0]).text().trim()) || index + 1;
+              const contractNo = $general(cells[1]).text().trim();
+              const buyer = parseInt($general(cells[3]).text().trim()) || 0;
+              const seller = parseInt($general(cells[4]).text().trim()) || 0;
+              const quantity = parseNumberValue($general(cells[5]).text().trim());
+              const rate = parseNumberValue($general(cells[6]).text().trim());
+              const amount = cells.length > 7 ? 
+                parseNumberValue($general(cells[7]).text().trim()) : 
+                (quantity * rate);
+              
+              transactions.push({
+                sn,
+                contract_no: contractNo,
+                stockholder: symbol,
+                buyer,
+                seller,
+                quantity,
+                rate,
+                amount
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`Error parsing general floorsheet row ${index}:`, err.message);
+        }
+      });
+      
+      if (transactions.length > 0) {
+        const summary = calculateFloorsheetSummary(transactions);
+        
+        return {
+          success: true,
+          data: {
+            symbol,
+            companyName,
+            floorsheetDate: new Date().toISOString().split('T')[0],
+            totalRecords: transactions.length,
+            floorsheet: transactions,
+            summary,
+            source: 'MeroLagani Filtered'
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+    
+    // Return empty response if no data found
+    return createEmptyFloorsheetResponse(symbol, companyName);
+    
+  } catch (error) {
+    console.error('Error in MeroLagani Direct approach:', error.message);
+    throw error;
+  }
+}
+
+// ShareSansar Source - Fixed to filter by company symbol
+async function fetchShareSansarFloorsheet(symbol) {
+  try {
+    symbol = symbol.toUpperCase();
+    console.log(`Fetching from ShareSansar for ${symbol}...`);
+    
+    const requestOptions = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache'
+      },
+      timeout: 15000
+    };
+    
+    // Try company-specific floorsheet page first
+    const response = await axios.get(`https://www.sharesansar.com/company-floorsheet?symbol=${symbol.toLowerCase()}`, requestOptions);
+    const html = response.data;
+    const $ = cheerio.load(html);
+    
+    // Get company name
+    const companyName = $('.panel-title').text().trim() || symbol;
+    
+    // Find floorsheet table
+    const floorsheetTable = $('.table-bordered');
+    
+    if (floorsheetTable.length) {
+      const transactions = [];
+      
+      // Check if we have data or "No records found" message
+      const noRecords = $('td:contains("No records found")').length > 0;
+      if (noRecords) {
+        console.log('ShareSansar reports no records found');
+        return createEmptyFloorsheetResponse(symbol, companyName);
+      }
+      
+      floorsheetTable.find('tbody tr').each((index, row) => {
+        try {
+          const cells = $(row).find('td');
+          
+          // Skip rows without enough cells
+          if (cells.length < 6) return;
+          
+          // Verify that this row has actual data
+          const contractText = $(cells[1]).text().trim();
+          if (!contractText || contractText === '-' || contractText.length < 5) return;
+          
+          const sn = parseInt($(cells[0]).text().trim()) || index + 1;
+          const contractNo = contractText;
+          const buyer = parseInt($(cells[2]).text().trim()) || 0;
+          const seller = parseInt($(cells[3]).text().trim()) || 0;
+          const quantity = parseNumberValue($(cells[4]).text().trim());
+          const rate = parseNumberValue($(cells[5]).text().trim());
+          const amount = cells.length > 6 ? 
+            parseNumberValue($(cells[6]).text().trim()) : 
+            (quantity * rate);
+          
+          // Validate the data before adding
+          if (quantity > 0 && rate > 0) {
+            transactions.push({
+              sn,
+              contract_no: contractNo,
+              stockholder: symbol,
+              buyer,
+              seller,
+              quantity,
+              rate,
+              amount
+            });
+          }
+        } catch (err) {
+          console.error(`Error parsing ShareSansar row ${index}:`, err.message);
+        }
+      });
+      
+      if (transactions.length > 0) {
+        const summary = calculateFloorsheetSummary(transactions);
+        
+        return {
+          success: true,
+          data: {
+            symbol,
+            companyName,
+            floorsheetDate: new Date().toISOString().split('T')[0],
+            totalRecords: transactions.length,
+            floorsheet: transactions,
+            summary,
+            source: 'ShareSansar'
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+    
+    // If company-specific page didn't work, try filtering from the main floorsheet
+    console.log('No transactions found, trying general floorsheet with filtering...');
+    
+    const generalResponse = await axios.get('https://www.sharesansar.com/floorsheet', requestOptions);
+    const generalHtml = generalResponse.data;
+    const $general = cheerio.load(generalHtml);
+    
+    const generalTable = $general('.table-bordered');
+    if (generalTable.length) {
+      const transactions = [];
+      
+      generalTable.find('tbody tr').each((index, row) => {
+        try {
+          const cells = $general(row).find('td');
+          
+          // Skip rows without enough cells
+          if (cells.length < 8) return;
+          
+          // General page has symbol at index 2
+          const stockSymbol = $general(cells[2]).text().trim();
+          
+          // Only include rows for the requested symbol
+          if (stockSymbol && stockSymbol.toUpperCase() === symbol) {
+            const sn = parseInt($general(cells[0]).text().trim()) || index + 1;
+            const contractNo = $general(cells[1]).text().trim();
+            const buyer = parseInt($general(cells[3]).text().trim()) || 0;
+            const seller = parseInt($general(cells[4]).text().trim()) || 0;
+            const quantity = parseNumberValue($general(cells[5]).text().trim());
+            const rate = parseNumberValue($general(cells[6]).text().trim());
+            const amount = parseNumberValue($general(cells[7]).text().trim()) || (quantity * rate);
+            
+            // Validate the data before adding
+            if (quantity > 0 && rate > 0) {
+              transactions.push({
+                sn,
+                contract_no: contractNo,
+                stockholder: symbol,
+                buyer,
+                seller,
+                quantity,
+                rate,
+                amount
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`Error parsing ShareSansar general row ${index}:`, err.message);
+        }
+      });
+      
+      if (transactions.length > 0) {
+        const summary = calculateFloorsheetSummary(transactions);
+        
+        return {
+          success: true,
+          data: {
+            symbol,
+            companyName,
+            floorsheetDate: new Date().toISOString().split('T')[0],
+            totalRecords: transactions.length,
+            floorsheet: transactions,
+            summary,
+            source: 'ShareSansar Filtered'
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+    
+    // Return empty response if no data found
+    return createEmptyFloorsheetResponse(symbol, companyName);
+    
+  } catch (error) {
+    console.error('Error in ShareSansar approach:', error.message);
+    throw error;
+  }
+}
+
+// Historical data source - implementing the missing function
+async function fetchHistoricalFloorsheet(symbol) {
+  try {
+    symbol = symbol.toUpperCase();
+    console.log(`Fetching historical floorsheet data for ${symbol}...`);
+    
+    // Try to get data from the past week instead of just today
+    // We'll construct dates for the past 7 days
+    const dates = [];
+    const today = new Date();
+    
+    // Generate dates for the past 7 days in YYYY-MM-DD format
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+    
+    const requestOptions = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache'
+      },
+      timeout: 15000
+    };
+    
+    // Try each date until we get results
+    for (const date of dates) {
+      try {
+        console.log(`Trying historical data for date ${date} for ${symbol}...`);
+        
+        // Try MeroLagani historical date search
+        const response = await axios.get(
+          `https://merolagani.com/Floorsheet.aspx?symbol=${symbol}&date=${date}`, 
+          requestOptions
+        );
+        
+        const html = response.data;
+        const $ = cheerio.load(html);
+        
+        // Get company name if available
+        const companyName = $('#ctl00_ContentPlaceHolder1_CompanyDetail1_companyName').text().trim() || 
+                          $('.container h2').text().trim().replace('Floorsheet of ', '') || 
+                          symbol;
+        
+        // Find the floorsheet table
+        const floorsheetTable = $('table.table-bordered');
+        
+        if (floorsheetTable.length) {
+          const transactions = [];
+          
+          floorsheetTable.find('tbody tr').each((index, row) => {
+            try {
+              const cells = $(row).find('td');
+              
+              // Skip rows without enough cells
+              if (cells.length < 6) return;
+              
+              const sn = parseInt($(cells[0]).text().trim()) || index + 1;
+              const contractNo = $(cells[1]).text().trim();
+              
+              // Detect if the 3rd column is stockholder
+              const thirdCol = $(cells[2]).text().trim();
+              const hasStockholder = thirdCol !== symbol && isNaN(parseInt(thirdCol));
+              
+              // Adjust indices based on whether stockholder column exists
+              const buyerIdx = hasStockholder ? 3 : 2;
+              const sellerIdx = hasStockholder ? 4 : 3;
+              const qtyIdx = hasStockholder ? 5 : 4;
+              const rateIdx = hasStockholder ? 6 : 5;
+              
+              const buyer = parseInt($(cells[buyerIdx]).text().trim()) || 0;
+              const seller = parseInt($(cells[sellerIdx]).text().trim()) || 0;
+              const quantity = parseNumberValue($(cells[qtyIdx]).text().trim());
+              const rate = parseNumberValue($(cells[rateIdx]).text().trim());
+              const amount = quantity * rate;
+              
+              // Only include transactions for this symbol
+              transactions.push({
+                sn,
+                contract_no: contractNo,
+                stockholder: symbol,
+                buyer,
+                seller,
+                quantity,
+                rate,
+                amount,
+                date
+              });
+            } catch (err) {
+              console.error(`Error parsing historical row ${index}:`, err.message);
+            }
+          });
+          
+          if (transactions.length > 0) {
+            const summary = calculateFloorsheetSummary(transactions);
+            
+            return {
+              success: true,
+              data: {
+                symbol,
+                companyName,
+                floorsheetDate: date,
+                totalRecords: transactions.length,
+                floorsheet: transactions,
+                summary,
+                source: `Historical (${date})`,
+                note: "This data is from a previous trading day as no data was found for today."
+              },
+              timestamp: new Date().toISOString()
+            };
+          }
+        }
+      } catch (err) {
+        console.error(`Error fetching historical data for ${date}:`, err.message);
+      }
+    }
+    
+    // If no historical data found for any date, return empty response
+    return createEmptyFloorsheetResponse(
+      symbol, 
+      symbol, 
+      "No floorsheet data found for this stock in the past 7 days."
+    );
+    
+  } catch (error) {
+    console.error('Error in Historical approach:', error.message);
+    throw error;
+  }
+}
+
+// Helper function to calculate summary statistics
+function calculateFloorsheetSummary(transactions) {
+  const summary = {
+    totalTransactions: transactions.length,
+    totalQuantity: 0,
+    totalAmount: 0,
+    minRate: Number.MAX_VALUE,
+    maxRate: 0,
+    averageRate: 0
+  };
+  
+  transactions.forEach(item => {
+    summary.totalQuantity += item.quantity || 0;
+    summary.totalAmount += item.amount || 0;
+    
+    if (item.rate > 0) {
+      summary.minRate = Math.min(summary.minRate, item.rate);
+      summary.maxRate = Math.max(summary.maxRate, item.rate);
+    }
+  });
+  
+  summary.minRate = summary.minRate === Number.MAX_VALUE ? 0 : summary.minRate;
+  summary.averageRate = summary.totalQuantity > 0 ? 
+    (summary.totalAmount / summary.totalQuantity) : 0;
+  
+  return summary;
+}
+
+// Helper to create an empty floorsheet response
+function createEmptyFloorsheetResponse(symbol, companyName, message) {
+  return {
+    success: true,
+    data: {
+      symbol,
+      companyName: companyName || symbol,
+      floorsheetDate: new Date().toISOString().split('T')[0],
+      totalRecords: 0,
+      floorsheet: [],
+      summary: {
+        totalTransactions: 0,
+        totalQuantity: 0,
+        totalAmount: 0,
+        minRate: 0,
+        maxRate: 0,
+        averageRate: 0
+      },
+      message: message || "No floorsheet transactions found for today. This may be due to no trading activity for this symbol today.",
+      source: 'Empty Response'
+    },
+    timestamp: new Date().toISOString()
+  };
+}
+
+// Helper function to parse number values (already defined in your code)
+function parseNumberValue(text) {
+  if (!text) return 0;
+  // Remove commas and convert to float
+  return parseFloat(text.replace(/,/g, '')) || 0;
+}
+
 // Export functions for use in server.js
 module.exports = {
   scrapeGainers,
@@ -605,5 +1199,6 @@ module.exports = {
   parseIndicesHTML,
   parseProvidedIndicesHTML,
   scrapeIndicesFromNepaliPaisa,
-  parseIndicesHTMLFromNepaliPaisa
+  parseIndicesHTMLFromNepaliPaisa,
+  scrapeFloorsheetData // Updated function
 };

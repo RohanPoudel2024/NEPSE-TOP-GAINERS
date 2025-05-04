@@ -9,8 +9,10 @@ const {
   parseIndicesHTML,
   parseProvidedIndicesHTML,
   scrapeIndicesFromNepaliPaisa,
-  parseIndicesHTMLFromNepaliPaisa
+  parseIndicesHTMLFromNepaliPaisa,
+  scrapeFloorsheetData
 } = require('./app');
+const { scrapeCompanyDetails } = require('./companyDetails');
 const axios = require('axios');
 
 const app = express();
@@ -21,7 +23,7 @@ app.use(cors());
 app.use(express.json()); 
 
 // Add route to show API info
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.send(`
     <h1>NEPSE API</h1>
     <p>API is running successfully!</p>
@@ -30,6 +32,8 @@ app.get('/', (req, res) => {
       <li><a href="/api/gainers">Get Gainers Data</a></li>
       <li><a href="/api/live-trading">Get Live Trading Data</a></li>
       <li><a href="/api/indices">Get Market Indices Data</a></li>
+      <li><a href="/api/company/HLI">Get Company Details (example: HLI)</a></li>
+      <li><a href="/api/floorsheet/HLI">Get Floorsheet Data (example: HLI)</a></li>
     </ul>
   `);
 });
@@ -284,6 +288,85 @@ app.post('/api/parse/nepalipaisa-indices', (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// Route to get company details
+app.get('/api/company/:symbol', async (req, res) => {
+  try {
+    const symbol = req.params.symbol;
+    
+    if (!symbol) {
+      return res.status(400).json({
+        success: false,
+        error: 'Stock symbol is required',
+        timestamp: new Date()
+      });
+    }
+    
+    console.log(`Processing company details request for symbol: ${symbol}`);
+    const companyData = await scrapeCompanyDetails(symbol);
+    
+    if (!companyData.success) {
+      return res.status(404).json({
+        success: false,
+        error: companyData.error || `Could not retrieve details for ${symbol}`,
+        timestamp: new Date()
+      });
+    }
+    
+    return res.json({
+      success: true,
+      data: companyData.data,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error(`Error processing company details request:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An unknown error occurred',
+      timestamp: new Date()
+    });
+  }
+});
+
+// Route to get company floorsheet data
+app.get('/api/floorsheet/:symbol', async (req, res) => {
+  try {
+    const symbol = req.params.symbol;
+    
+    if (!symbol) {
+      return res.status(400).json({
+        success: false,
+        error: 'Stock symbol is required',
+        timestamp: new Date()
+      });
+    }
+    
+    console.log(`Processing floorsheet request for symbol: ${symbol}`);
+    const floorsheetData = await scrapeFloorsheetData(symbol);
+    
+    if (!floorsheetData.success) {
+      return res.status(404).json({
+        success: false,
+        error: floorsheetData.error || `Could not retrieve floorsheet data for ${symbol}`,
+        timestamp: new Date()
+      });
+    }
+    
+    // Make sure this return statement is included
+    return res.json({
+      success: true,
+      data: floorsheetData.data,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error(`Error processing floorsheet request:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An unknown error occurred',
       timestamp: new Date()
     });
   }
